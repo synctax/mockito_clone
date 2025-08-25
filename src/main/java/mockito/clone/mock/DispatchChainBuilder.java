@@ -7,10 +7,6 @@ public class DispatchChainBuilder {
     private  IDispatchChainInterceptor interceptor;
     private final List<Class<?>> interfaces = new ArrayList<>();
 
-    public DispatchChainBuilder() {
-        interceptor = new DispatchChainInterceptor();
-    }
-
     public DispatchChainBuilder addInterceptor(IDispatchChainInterceptor interceptor){
         this.interceptor = interceptor;
         return this;

@@ -13,7 +13,6 @@ public class VerificationHandler extends DispatchHandler implements IVerifiable{
     public void startVerifying(VerificationContext context) {
         verifying = true;
         verificationContext = context;
-        getInvocationHistory().redactNextInvocation();
     }
     @Override
     public void reset() {
@@ -25,8 +24,9 @@ public class VerificationHandler extends DispatchHandler implements IVerifiable{
     public DispatchHandlerResult handle(MethodInvocation invocation) {
         if (!verifying) return Pass();
         verifying = false;
+        getInvocationHistory().redactLastInvocation(invocation.object);
 
-        List<MethodInvocation> invocations = getInvocationHistory().getInvocations(invocation.method.getName());
+        List<MethodInvocation> invocations = getInvocationHistory().getInvocationsOfMethod(invocation.object, invocation.method);
 
         int count = 0;
         for (MethodInvocation inv : invocations)

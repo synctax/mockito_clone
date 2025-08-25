@@ -16,8 +16,7 @@ public class EffectfulStubBuilder<T> extends StubBuilder<T>{
 
     public static <T> EffectfulStubBuilder<T> when(T underscore) {
         MethodInvocation invocation = lastInvocation.get();
-        IInvocationHistory mockHistory = MockFactory.getHistory(invocation.object);
-        mockHistory.redactLastInvocation();
+        MockFactory.redactLastInvocation(invocation.object);
         return new EffectfulStubBuilder<T>(invocation);
     }
 

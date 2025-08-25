@@ -7,16 +7,11 @@ import java.util.*;
 
 public class DispatchChainInterceptor implements IDispatchChainInterceptor{
     private final List<IDispatchHandler> handlers = new ArrayList<>();
+    private final IInvocationHistory invocationRecorder;
 
-    private final ChronologicalMethodInvocations invocations = new ChronologicalMethodInvocations();
-    private boolean shouldRedactNext = false;
-
-    @Override
-    public void redactLastInvocation() {invocations.removeLast();}
-    @Override
-    public void redactNextInvocation() {shouldRedactNext = true;}
-    @Override
-    public List<MethodInvocation> getInvocations(String method) {return invocations.get(method);}
+    public DispatchChainInterceptor(IInvocationHistory invocationRecorder) {
+        this.invocationRecorder = invocationRecorder;
+    }
 
     @Override
     public <T extends IDispatchHandler> T getHandler(Class<T> type) {
@@ -28,15 +23,13 @@ public class DispatchChainInterceptor implements IDispatchChainInterceptor{
 
     @Override
     public <T extends IDispatchHandler> void addHandler(T concrete) {
-        concrete.setInvocationHistory(this);
+        concrete.setInvocationHistory(invocationRecorder);
         handlers.add(concrete);
     }
 
     @Override
     public void reset() {
-        invocations.clear();
-        shouldRedactNext = false;
-
+        invocationRecorder.redactAllObjectInvocations(this);
         for (IDispatchHandler handler : handlers) {
             handler.reset();
         }
@@ -58,8 +51,7 @@ public class DispatchChainInterceptor implements IDispatchChainInterceptor{
             .matchers(argumentMatchers)
             .build();
 
-        if (!shouldRedactNext) invocations.add(method.getName(), invocation);
-        shouldRedactNext = false;
+        invocationRecorder.recordInvocation(invocation);
 
         Object dummyReturn = DummyDataProvider.getDummyValue(method.getReturnType());
         for (IDispatchHandler handler : handlers) {
@@ -75,38 +67,5 @@ public class DispatchChainInterceptor implements IDispatchChainInterceptor{
         }
 
         return dummyReturn;
-    }
-}
-
-class ChronologicalMethodInvocations {
-    private final Map<String, List<MethodInvocation>> data = new HashMap<>();
-    private final Stack<String> addStack = new Stack<>();
-
-    public void add(String method, MethodInvocation invocation) {
-        List<MethodInvocation> invocations = data.get(method);
-        if (invocations == null) {
-            invocations = new ArrayList<>();
-            data.put(method, invocations);
-        }
-
-        invocations.add(invocation);
-        addStack.push(method);
-    }
-
-    public List<MethodInvocation> get(String method) {
-        return data.get(method);
-    }
-
-    public void removeLast() {
-        if (addStack.isEmpty()) return;
-        String methodToRemove = addStack.pop();
-
-        List<?> invocations = data.get(methodToRemove);
-        invocations.remove(invocations.size()-1);
-    }
-
-    public void clear() {
-        data.clear();
-        addStack.clear();
     }
 }

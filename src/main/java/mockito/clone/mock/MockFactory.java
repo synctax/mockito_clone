@@ -3,6 +3,8 @@ package mockito.clone.mock;
 import net.sf.cglib.proxy.Enhancer;
 
 public class MockFactory {
+    static final IInvocationHistory invocationRecorder = new InvocationRecorder();
+
     public static <T> T mock(Class<T> clazz){
         Enhancer enhancer = getDefaultChain()
                 .build()
@@ -37,12 +39,12 @@ public class MockFactory {
         return manager.getHandler(IVerifiable.class);
     }
 
-    public static IInvocationHistory getHistory(Object object) {
-        return getManager(object);
+    public static void redactLastInvocation(Object object) {
+        invocationRecorder.redactLastInvocation(object);
     }
 
     private static DispatchChainBuilder getDefaultChain() {
-        DispatchChainInterceptor interceptor = new DispatchChainInterceptor();
+        DispatchChainInterceptor interceptor = new DispatchChainInterceptor(invocationRecorder);
         return new DispatchChainBuilder()
                 .addInterceptor(interceptor)
                 .addHiddenInterface(
