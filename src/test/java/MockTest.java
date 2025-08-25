@@ -1,6 +1,7 @@
 import mockito.clone.Collaborator;
 import mockito.clone.UnderTest;
 import mockito.clone.mock.ArgumentCaptor;
+import mockito.clone.mock.InOrder;
 
 import static mockito.clone.mock.ArgumentMatcher.*;
 import static mockito.clone.mock.CallCount.atLeastOnce;
@@ -21,6 +22,7 @@ public class MockTest {
         simpleSpy();
         returnChaining();
         effectlessStubbing();
+        orderedVerification();
     }
 
     static private void canSetReturn() {
@@ -143,5 +145,23 @@ public class MockTest {
 
         verify(collaboratorSpy, times(2)).sideEffect(anyInt());
         Assert.equal(output, 3);
+    }
+
+    public static void orderedVerification() {
+        Collaborator collaborator = mock(Collaborator.class);
+        when(collaborator.getNumberFromSeed(anyInt()))
+                .thenReturn(3)
+                .thenReturn(4);
+
+        UnderTest underTest = new UnderTest(collaborator);
+
+        int output = underTest.doTheThing(1,2);
+        InOrder ordered = new InOrder();
+
+        ordered.verify(collaborator, atLeastOnce()).getNumberFromSeed(1);
+        ordered.verify(collaborator, atLeastOnce()).getNumberFromSeed(2);
+        ordered.verify(collaborator, times(1)).sideEffect(3);
+        ordered.verify(collaborator, times(1)).sideEffect(4);
+        Assert.equal(output, 7);
     }
 }

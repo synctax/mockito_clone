@@ -4,15 +4,21 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 public class InvocationRecorder implements IInvocationHistory{
-    private final LinkedList<MethodInvocation> invocations = new LinkedList<>();
+    private static final ThreadLocal<LinkedList<MethodInvocation>> invocations =
+            new ThreadLocal<LinkedList<MethodInvocation>>() {
+                @Override
+                protected LinkedList<MethodInvocation> initialValue() {
+                    return new LinkedList<>();
+                }
+            };
 
     @Override
     public void recordInvocation(MethodInvocation invocation)
-    {invocations.add(invocation);}
+    {invocations.get().add(invocation);}
 
     @Override
     public void redactLastInvocation(Object object) {
-        Iterator<MethodInvocation> it = invocations.descendingIterator();
+        Iterator<MethodInvocation> it = invocations.get().descendingIterator();
         while (it.hasNext()) {
             if (it.next().object == object) {
                 it.remove();
@@ -23,7 +29,7 @@ public class InvocationRecorder implements IInvocationHistory{
 
     @Override
     public void redactAllObjectInvocations(Object object) {
-        Iterator<MethodInvocation> it = invocations.iterator();
+        Iterator<MethodInvocation> it = invocations.get().iterator();
         while (it.hasNext()) {
             if (it.next().object == object) {
                 it.remove();
@@ -32,16 +38,23 @@ public class InvocationRecorder implements IInvocationHistory{
     }
 
     @Override
-    public List<MethodInvocation> getInvocationsOfMethod(Object object, Method method) {
-        return getInvocationsOfMethodInRange(0, -1, object, method);
+    public List<MethodInvocation> getInvocationsOfMethodAfter(MethodInvocation prior, Object object, Method method) {
+        List<MethodInvocation> out = new ArrayList<>();
+        Iterator<MethodInvocation> it = invocations.get().descendingIterator();
+        while (it.hasNext()) {
+            MethodInvocation inv = it.next();
+            if (inv.equals(prior)) return out;
+            if (inv.object == object && inv.method.equals(method))
+                out.add(inv);
+        }
+        return out;
     }
 
     @Override
-    public List<MethodInvocation> getInvocationsOfMethodInRange(int start, int end, Object object, Method method) {
+    public List<MethodInvocation> getInvocationsOfMethod(Object object, Method method) {
         List<MethodInvocation> out = new ArrayList<>();
-        int newEnd = end == -1 ? invocations.size() : end;
-        for (MethodInvocation invocation : invocations.subList(start, newEnd)) {
-            if (invocation.object == object && invocation.method == method)
+        for (MethodInvocation invocation : invocations.get()) {
+            if (invocation.object == object && invocation.method.equals(method))
                 out.add(invocation);
         }
         return out;

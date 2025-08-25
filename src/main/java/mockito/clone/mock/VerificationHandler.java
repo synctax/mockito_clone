@@ -1,5 +1,6 @@
 package mockito.clone.mock;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static mockito.clone.mock.DispatchHandlerResult.Dummy;
@@ -26,15 +27,19 @@ public class VerificationHandler extends DispatchHandler implements IVerifiable{
         verifying = false;
         getInvocationHistory().redactLastInvocation(invocation.object);
 
-        List<MethodInvocation> invocations = getInvocationHistory().getInvocationsOfMethod(invocation.object, invocation.method);
+        List<MethodInvocation> invocations = getInvocationHistory()
+                .getInvocationsOfMethodAfter(verificationContext.lastInvocation, invocation.object, invocation.method);
 
-        int count = 0;
+
+        List<MethodInvocation> matchingInvocations = new ArrayList<>();
         for (MethodInvocation inv : invocations)
-            if (ArgumentMatcher.allMatch(invocation.matchers, inv.args)) ++count;
+            if (ArgumentMatcher.allMatch(invocation.matchers, inv.args))
+                matchingInvocations.add(inv);
 
-        if (verificationContext.callCount.accepts(count))
-            return Dummy();
-        throw new RuntimeException("VERIFICATION FAILED FOR "+ invocation.method.getName());
+        int matchCount = matchingInvocations.size();
+        MethodInvocation lastInvocation = matchCount < 1 ? null : matchingInvocations.get(matchCount-1);
+        verificationContext.verify(lastInvocation, matchCount);
+        return Dummy();
     }
 
 }

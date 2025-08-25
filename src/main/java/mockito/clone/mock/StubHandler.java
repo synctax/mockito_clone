@@ -34,7 +34,7 @@ public class StubHandler extends DispatchHandler implements IStubbable{
     public DispatchHandlerResult handle(MethodInvocation invocation) throws Throwable {
         if (stubbing) {
             stubContext.registerInvocation(invocation);
-            getInvocationHistory().redactLastInvocation(this);
+            getInvocationHistory().redactLastInvocation(invocation.object);
             stubbing = false;
             return Dummy();
         }
